@@ -2,16 +2,18 @@ library(tidyverse)
 library(stringr)
 library(lubridate)
 library(magrittr)
+library(ggridges)
+library(parallel)
+library(pbapply)
 
 load("results_raw.rda")
 load("individual_results_raw.rda")
 
 individual_results_raw <- transpose(individual_results_raw)
 
-url <- "https://raw.githubusercontent.com/jasonong/List-of-US-States/master/states.csv"
-states <- url %>%
-  read_csv() %>%
-  rename(state_abbr = Abbreviation, state = State)
+states <- read_csv("states.csv")
+
+countries <- read_csv("countries.csv")
 
 results <- results_raw %>%
   select(-Race.Day.Photos, -X) %>%
@@ -23,13 +25,15 @@ results <- results_raw %>%
   mutate_at(vars(starts_with("Place")), as.integer) %>%
   separate(
     Name..CTZ., 
-    into = c("last_name", "first_name", "country"), 
+    into = c("last_name", "first_name", "country_code"), 
     sep = ",(?=[^,]+$)|\\((?=[:alnum:]+\\)$)|\\)$"
   ) %>%
   mutate(last_name = gsub("»", "", last_name)) %>%
   separate(City..State, into = c("city", "state_abbr"), sep = ",") %>%
   mutate_if(is.character, str_trim) %>%
-  left_join(states)
+  left_join(states) %>%
+  left_join(countries) %>%
+  mutate_at(vars(country, state, Division, country_code), as.factor)
 
 num_women <- results %>%
   count(Place.Gender) %>%
@@ -44,23 +48,30 @@ results <- results %>%
         Place.Gender > num_women ~ "M",
         2*Place.Gender > Place.Overall ~ "M",
         2*Place.Gender < Place.Overall  ~ "F"
-      )
+      ) %>% as.factor()
   )
 
-#TODO: Finish dealing with time
+no_cores <- detectCores() - 1
+cl <- makeCluster(no_cores)
+clusterEvalQ(cl, {library(dplyr)})
+
+results$splits <- pblapply(results$splits, function(x) mutate_all(x, as.character), cl = cl)
+
+results2 <- results
+
+results <- unnest(results)
+
+results <- results %>% 
+  select(-HALF, -Finish, -`Time Of Day`, -Diff, -`min/mile`, -`miles/h`)
+
 results <- results %>%
-  mutate(Finish = Finish %>% hms() %>% as.numeric())
+  filter(!endsWith(Split, "*")) %>%
+  spread(Split, Time) %>%
+  select(last_name, first_name, city, state, country, gender, Age, Division,
+         BIB, Place.Overall, Place.Gender, Place.Division, `05K`, `10K`, `15K`,
+         `20K`, HALF, `25K`, `30K`, `35K`, `40K`, Finish, 
+         state_abbr, country_code, PND)
 
+results <- mutate_at(results, vars(`05K`:Finish), compose(as.numeric, hms))
 
-ggplot(results, aes(x = Finish/3600, y = Division, fill = gender)) +
-  geom_density_ridges2(scale = 2, alpha = 0.5, color = "white") + 
-  theme_ridges(grid = FALSE) +
-  scale_fill_manual(values = c("#E4002B", "#009CDE")) +
-  scale_x_continuous(breaks = 2:10) +
-  labs(
-    x = "Finish Time (Hours)", 
-    y = "Division", 
-    title = "Chicago Marathon Times by Division", 
-    fill = "Gender"
-  )
-
+finishers <- filter(results, !is.na(Place.Overall))
