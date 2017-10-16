@@ -1,5 +1,7 @@
 library(tidyverse)
 library(stringr)
+library(lubridate)
+library(magrittr)
 
 load("results_raw.rda")
 load("individual_results_raw.rda")
@@ -29,4 +31,33 @@ results <- results_raw %>%
   mutate_if(is.character, str_trim) %>%
   left_join(states)
 
+num_women <- results %>%
+  count(Place.Gender) %>%
+  filter(n > 1) %$%
+  Place.Gender %>%
+  max(na.rm = TRUE)
+  
+results <- results %>%
+  mutate(
+    gender =
+      case_when(
+        Place.Gender > num_women ~ "M",
+        2*Place.Gender > Place.Overall ~ "M",
+        2*Place.Gender < Place.Overall  ~ "F"
+      )
+  ) %>%
+  unite(age_division, gender, Division, sep = "", remove = FALSE)
+
+results$age_division[startsWith(results$age_division, "NA")] <- NA
+
+#TODO: Finish dealing with time
+results <- results %>%
+  mutate(Finish = Finish %>% hms() %>% as.numeric())
+
+
+ggplot(filter(results, !is.na(age_division)), aes(x = Finish/3600, y = Division, fill = gender)) +
+  geom_density_ridges2(scale = 2, alpha = 0.5, color = "white") + theme_ridges(grid = FALSE) +
+  scale_fill_manual(values = c("#E4002B", "#009CDE")) +
+  scale_x_continuous(breaks = 2:10) +
+  labs(x = "Finish Time (Hours)", y = "Age Group", title = "Chicago Marathon Results by Age Group", fill = "Gender")
 

@@ -44,4 +44,4 @@ individual_urls <- unlist(search_pages$urls)
 save(results_raw, file = "results_raw.rda")
 
 individual_results_raw <- parLapply(cl, individual_urls, get_individual_results)
-save(individual_results, file = "individual_results_raw.rda")
+save(individual_results_raw, file = "individual_results_raw.rda")
