@@ -59,19 +59,18 @@ results$splits <- pblapply(results$splits, function(x) mutate_all(x, as.characte
 
 results2 <- results
 
-results <- unnest(results)
-
-results <- results %>% 
-  select(-HALF, -Finish, -`Time Of Day`, -Diff, -`min/mile`, -`miles/h`)
-
 results <- results %>%
+  unnest() %>%
+  select(-HALF, -Finish, -`Time Of Day`, -Diff, -`min/mile`, -`miles/h`) %>%
   filter(!endsWith(Split, "*")) %>%
   spread(Split, Time) %>%
   select(last_name, first_name, city, state, country, gender, Age, Division,
          BIB, Place.Overall, Place.Gender, Place.Division, `05K`, `10K`, `15K`,
          `20K`, HALF, `25K`, `30K`, `35K`, `40K`, Finish, 
-         state_abbr, country_code, PND)
+         state_abbr, country_code, PND) %>%
+  mutate_at(vars(`05K`:Finish), compose(as.numeric, hms))
+  
 
-results <- mutate_at(results, vars(`05K`:Finish), compose(as.numeric, hms))
 
 finishers <- filter(results, !is.na(Place.Overall))
+

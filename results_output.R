@@ -1,4 +1,6 @@
-ggplot(finishers, aes(x = Finish/3600, y = Division, fill = gender)) +
+# Results by age group
+finishers %>%
+  ggplot(aes(x = Finish/3600, y = Division, fill = gender)) +
   geom_density_ridges2(scale = 2, alpha = 0.5, color = "black") + 
   theme_ridges(grid = TRUE) +
   scale_fill_manual(values = c("#E4002B", "#009CDE")) +
@@ -10,21 +12,29 @@ ggplot(finishers, aes(x = Finish/3600, y = Division, fill = gender)) +
     fill = "Gender"
   )
 
-results3 <- results
-
-results3$state <- fct_lump(results$state, n = 10)
-
-results3 <- results3 %>%
-  filter(!is.na(state), !is.na(gender))
-
-ggplot(filter(results3, Finish < 3600*9), aes(x = Finish/3600, y = state, fill = gender)) +
-  geom_density_ridges2(scale = 2, alpha = 0.5, color = "black") + 
-  theme_ridges(grid = TRUE) +
-  scale_fill_manual(values = c("#E4002B", "#009CDE")) +
-  scale_x_continuous(breaks = 2:9) +
+# Final time versus split
+finishers %>%
+  ggplot(aes(x = HALF/3600, y = Finish/3600, color = gender)) +
+  geom_point(alpha = 0.05) +
+  scale_color_manual(values = c("#E4002B", "#009CDE")) +
+  geom_abline(intercept = c(0, 0), slope = 2) +
+  ggthemes::theme_economist() +
   labs(
-    x = "Finish Time (Hours)", 
-    y = "State", 
-    title = "Chicago Marathon Times by State", 
-    fill = "Gender"
+    x = "Half Marathon Split (Hours)", 
+    y = "Finish Time (Hours)", 
+    title = "Very Few Runners Negative Split", 
+    color = "Gender"
+  )
+
+# Pacing of elite men
+finishers %>%
+  filter(gender == "M", (HALF < 1.25*3600 | Finish < 2.5*3600) & Finish < 2.75*3600) %>%
+  ggplot(aes(x = HALF/3600, y = Finish/3600)) +
+  geom_point(color = "#009CDE", size = 2) +
+  geom_abline(intercept = c(0, 0), slope = 2) +
+  ggthemes::theme_economist() +
+  labs(
+    x = "Half Marathon Split (Hours)", 
+    y = "Finish Time (Hours)", 
+    title = "Splits of Elite Men"
   )
