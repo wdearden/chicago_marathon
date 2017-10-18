@@ -18,8 +18,8 @@ countries <- read_csv("countries.csv")
 results <- results_raw %>%
   select(-Race.Day.Photos, -X) %>%
   mutate(
-    start_time = map_chr(individual_results[[2]], ~ .x$X2),
-    splits = individual_results[[5]],
+    start_time = map_chr(individual_results_raw[[2]], ~ .x$X2),
+    splits = individual_results_raw[[5]],
     PND = Place.Overall == "PND"
   ) %>%
   mutate_at(vars(starts_with("Place")), as.integer) %>%
@@ -49,13 +49,15 @@ results <- results %>%
         2*Place.Gender > Place.Overall ~ "M",
         2*Place.Gender < Place.Overall  ~ "F"
       ) %>% as.factor()
-  )
+  ) %>%
+  unite(gender_division, gender, Division, remove = FALSE)
 
 no_cores <- detectCores() - 1
 cl <- makeCluster(no_cores)
 clusterEvalQ(cl, {library(dplyr)})
 
-results$splits <- pblapply(results$splits, function(x) mutate_all(x, as.character), cl = cl)
+results$splits <- 
+  pblapply(results$splits, function(x) mutate_all(x, as.character), cl = cl)
 
 results2 <- results
 
@@ -65,12 +67,10 @@ results <- results %>%
   filter(!endsWith(Split, "*")) %>%
   spread(Split, Time) %>%
   select(last_name, first_name, city, state, country, gender, Age, Division,
-         BIB, Place.Overall, Place.Gender, Place.Division, `05K`, `10K`, `15K`,
-         `20K`, HALF, `25K`, `30K`, `35K`, `40K`, Finish, 
+         gender_division, BIB, Place.Overall, Place.Gender, Place.Division, 
+         `05K`, `10K`, `15K`, `20K`, HALF, `25K`, `30K`, `35K`, `40K`, Finish, 
          state_abbr, country_code, PND) %>%
   mutate_at(vars(`05K`:Finish), compose(as.numeric, hms))
-  
 
-
-finishers <- filter(results, !is.na(Place.Overall))
+save(results, file = "results.rda")
 
