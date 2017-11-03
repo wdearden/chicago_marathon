@@ -1,6 +1,8 @@
 library(tidyverse)
 library(ggridges)
 
+load("Cleaned/results.rda")
+
 finishers <- results %>%
   filter(!is.na(Finish), !is.na(gender), Finish < 9*3600)
 
