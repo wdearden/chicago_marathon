@@ -6,14 +6,12 @@ library(ggridges)
 library(parallel)
 library(pbapply)
 
-load("results_raw.rda")
-load("individual_results_raw.rda")
+load("Input/results_raw.rda")
+load("Input/individual_results_raw.rda")
 
-individual_results_raw <- transpose(individual_results_raw)
+states <- read_csv("Input/states.csv")
 
-states <- read_csv("states.csv")
-
-countries <- read_csv("countries.csv")
+countries <- read_csv("Input/countries.csv")
 
 results <- results_raw %>%
   select(-Race.Day.Photos, -X) %>%
@@ -59,8 +57,6 @@ clusterEvalQ(cl, {library(dplyr)})
 results$splits <- 
   pblapply(results$splits, function(x) mutate_all(x, as.character), cl = cl)
 
-results2 <- results
-
 results <- results %>%
   unnest() %>%
   select(-HALF, -Finish, -`Time Of Day`, -Diff, -`min/mile`, -`miles/h`) %>%
@@ -72,5 +68,5 @@ results <- results %>%
          state_abbr, country_code, PND) %>%
   mutate_at(vars(`05K`:Finish), compose(as.numeric, hms))
 
-save(results, file = "Input/results.rda")
+save(results, file = "Cleaned/results.rda")
 
