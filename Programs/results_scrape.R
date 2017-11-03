@@ -41,7 +41,7 @@ pages <- 1:55
 search_pages <- parLapply(pages, scrape_search_page, cl = cl) %>% transpose()
 results_raw <- bind_rows(search_pages$results)
 individual_urls <- unlist(search_pages$urls)
-save(results_raw, file = "results_raw.rda")
+save(results_raw, file = "Input/results_raw.rda")
 
 individual_results_raw <- parLapply(cl, individual_urls, get_individual_results)
-save(individual_results_raw, file = "individual_results_raw.rda")
+save(individual_results_raw, file = "Input/individual_results_raw.rda")

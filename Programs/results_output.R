@@ -1,3 +1,9 @@
+library(tidyverse)
+library(ggridges)
+
+finishers <- results %>%
+  filter(!is.na(Finish), !is.na(gender), Finish < 9*3600)
+
 # Results by age group
 finishers %>%
   ggplot(aes(x = Finish/3600, y = Division, fill = gender)) +
@@ -30,9 +36,10 @@ finishers %>%
 finishers %>%
   filter(gender == "M", (HALF < 1.25*3600 | Finish < 2.5*3600) & Finish < 2.75*3600) %>%
   ggplot(aes(x = HALF/3600, y = Finish/3600)) +
-  geom_point(color = "#009CDE", size = 2) +
+  geom_point(size = 2) +
   geom_abline(intercept = c(0, 0), slope = 2) +
-  ggthemes::theme_economist() +
+  ggabbott::theme_abbott(base_family = "Calibri") +
+  ggabbott::scale_color_abbott() +
   labs(
     x = "Half Marathon Split (Hours)", 
     y = "Finish Time (Hours)", 
